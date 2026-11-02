@@ -1,0 +1,23 @@
+Projeto 3 – Redes Neurais
+▪Para desenvolvimento desse projeto, considere uma base de dados de texto. Considere uma base que seja desbalanceada e tenha várias
+classes, ou seja, uma base difícil.
+▪ Implemente uma MLP, com duas camadas. Já o número de neurônios em cada camada poderá variar. Implemente a derivada em cadeia
+e compare com uma implementação usando Keras, com mesmos parâmetros. Sua implementação deve atender as derivadas dos pesos e
+do bias.
+▪ Considere as seguintes variações (hiper-parâmetros):
+◦ Escolha 2 tipos diferentes de função de ativação, considerando: Rectified Linear Unit - ReLU e Sigmoid
+◦ Regularização: L2 e Sem Regularização
+◦ Variação no número de neurônios por camada
+▪Aplique 3-fold cross-validation na base de dados para escolher os melhores hiper-parâmetros
+▪ Faça uma análise de overfitting, underfitting, viês e variância sobre os modelos avaliados, considerando para isso as curvas de
+aprendizado.
+▪ Faça um mapa de calor para mostrar variação dos pesos na rede, e compare considerando: ReLU e Sigmoid. Ou seja, em cada época você
+tem duas matrizes e a cada época esses valores vão mudando. Então acumule esses número para mostrar a variação dos parâmetros.
+▪A partir do experimento anterior, faça uma análise sobre a saturação dos pesos.
+▪A partir da implementação feita, gere uma representação Embedding SkipGram das palavras do texto, e substitua a representação TF-IDF
+com a nova representação concatenada. Utilize a melhor configuração de parâmetros e veja se a acurácia melhorou. (ponto extra). DICA:
+Diferente da rede neural treinada antes (com duas camadas ocultas), aqui existe somente uma, então retire uma cada para rodar esse
+experimento.
+▪Deverá ser entregue:
+◦ um relatório com: introdução, descrição do projeto, resultados e análises.
+◦ Uma apresentação de dez minutos.

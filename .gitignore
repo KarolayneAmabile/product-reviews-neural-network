@@ -1,0 +1,31 @@
+# Ambientes virtuais e caches
+.venv/
+venv/
+__pycache__/
+.ipynb_checkpoints/
+
+# Dados (o notebook baixa a base direto do GitHub da B2W)
+*.csv
+*.parquet
+
+# Modelos salvos
+*.h5
+*.keras
+*.ckpt*
+
+# Relatório (LaTeX/PDF)
+relatorio/
+*.aux
+*.log
+*.out
+*.toc
+*.synctex.gz
+
+# Slides e apresentação
+slides/
+*.pptx
+*.key
+*.pdf
+
+# Material teórico da disciplina
+# material-teorico/
