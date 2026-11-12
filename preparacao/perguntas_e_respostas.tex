@@ -1,0 +1,239 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[brazil]{babel}
+\usepackage{lmodern}
+\usepackage[margin=2.2cm]{geometry}
+\usepackage{amsmath}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{enumitem}
+\usepackage{parskip}
+\usepackage[hidelinks]{hyperref}
+
+\definecolor{fundo}{HTML}{F4F2EE}
+\definecolor{destaque}{HTML}{B5481A}
+\lstset{basicstyle=\ttfamily\small, backgroundcolor=\color{fundo}, frame=single, rulecolor=\color{fundo},
+        columns=fullflexible, keepspaces=true, breaklines=true, xleftmargin=4pt, xrightmargin=4pt}
+
+\newcounter{pergunta}
+\newcommand{\pergunta}[1]{\refstepcounter{pergunta}\par\medskip\noindent{\color{destaque}\bfseries P\thepergunta.}~\textbf{#1}\par\nopagebreak}
+\newcommand{\resposta}{\noindent\textit{Resposta:}~}
+
+\title{\textbf{Projeto 3 -- Redes Neurais}\\[2pt]\large Perguntas prováveis na apresentação, com respostas}
+\author{Karolayne Amábile Brito Borges \and Ana Laura Machado Pereira}
+\date{}
+
+\begin{document}
+\maketitle
+
+\noindent As perguntas seguem os temas da Lista 2 (MLP) e estão ligadas ao que fizemos no projeto: o código do notebook \texttt{Projeto3\_MLP\_B2W.ipynb} e os resultados do relatório. Os números são os da execução apresentada.
+
+% =====================================================================
+\section{Arquitetura e camada de saída}
+
+\pergunta{Quantos neurônios tem a camada de saída da sua rede e qual a função de ativação dela? Por quê?}
+\resposta Cinco neurônios, um por nota (1 a 5 estrelas), com \textbf{softmax}. As classes são mutuamente exclusivas (uma avaliação tem uma nota só), e a softmax transforma as cinco saídas em probabilidades que somam 1. A nota prevista é a de maior probabilidade (\texttt{argmax}).
+
+\pergunta{E se a tarefa fosse spam ou não spam? E a base MNIST? E prever o preço de casas?}
+\resposta
+\begin{itemize}[nosep]
+  \item \textbf{Spam × não spam} (binária): \textbf{1 neurônio} com ativação \textbf{logística (sigmoid)}, que dá a probabilidade de ser spam; custo de entropia cruzada binária.
+  \item \textbf{MNIST} (dígitos 0 a 9): \textbf{10 neurônios} com \textbf{softmax}, um por dígito, como no nosso caso com 5 notas.
+  \item \textbf{Preço de casas} (regressão): \textbf{1 neurônio sem ativação} (linear), porque o preço pode ser qualquer valor; custo \textbf{MSE} ou MAE em vez de entropia cruzada. Uma ReLU na saída também serviria para garantir valor não negativo.
+\end{itemize}
+
+\pergunta{Qual a função de custo e por que ela?}
+\resposta Entropia cruzada: $C = -\frac{1}{m}\sum \log \hat{y}_{\text{classe certa}}$. É o custo padrão para classificação com softmax: pune muito quando a rede dá probabilidade baixa à classe certa. E, combinada com a softmax, a derivada na saída fica simples: $\delta = \hat{y} - y$.
+
+\pergunta{Quantos parâmetros a melhor rede tem?}
+\resposta 48.197. Entrada $\rightarrow$ oculta 1: $3000 \times 16 + 16 = 48.016$; oculta 1 $\rightarrow$ oculta 2: $16 \times 8 + 8 = 136$; oculta 2 $\rightarrow$ saída: $8 \times 5 + 5 = 45$. É o mesmo total que o \texttt{model.summary()} do Keras mostra. Quase tudo está na primeira camada, por causa dos 3.000 termos do TF-IDF.
+
+\pergunta{Por que a camada de entrada tem 3.000 neurônios?}
+\resposta Um neurônio por atributo. Cada avaliação é representada pelo TF-IDF com os 3.000 termos (palavras e pares de palavras) mais frequentes, então a entrada tem 3.000 valores.
+
+% =====================================================================
+\section{Funções de ativação}
+
+\pergunta{Por que a função logística foi tão importante para as primeiras MLP?}
+\resposta O perceptron usava a \textit{step function}, cuja derivada é zero em todo lugar (e não existe no degrau). Sem derivada, não dá para saber em que direção corrigir os pesos das camadas ocultas. A logística é uma versão ``suave'' do degrau: é derivável em todos os pontos e tem derivada diferente de zero. Isso tornou possível treinar redes com várias camadas por \textbf{backpropagation} e gradiente descendente, o avanço que popularizou as MLP.
+
+\pergunta{Explique pelo menos três funções de ativação.}
+\resposta
+\begin{itemize}[nosep]
+  \item \textbf{Sigmoid (logística):} $f(z) = 1/(1+e^{-z})$, saída entre 0 e 1. Derivada $f(z)(1-f(z))$, no máximo 0,25. Satura nos extremos e enfraquece o gradiente.
+  \item \textbf{Tangente hiperbólica:} saída entre $-1$ e 1, centrada em zero; derivada máxima 1, mas também satura nos extremos.
+  \item \textbf{ReLU:} $f(z) = \max(0, z)$. Derivada 1 para $z > 0$ e 0 caso contrário. Não satura do lado positivo e é barata de calcular; é a padrão em redes profundas. Problema: neurônios que ficam sempre com $z \le 0$ ``morrem''.
+  \item \textbf{Softmax:} usada na saída multiclasse; transforma os valores em probabilidades que somam 1.
+\end{itemize}
+
+\pergunta{Por que precisamos de uma ativação não linear nas camadas ocultas?}
+\resposta Porque uma combinação de funções lineares continua sendo linear. Sem ativação não linear, uma rede com várias camadas equivale a uma única camada linear e não aprende padrões mais complexos.
+
+\pergunta{Se a Sigmoid é a ``clássica'', por que a ReLU foi melhor no seu trabalho?}
+\resposta Pela derivada. Na ReLU, quando o neurônio está ativo, a derivada é 1 e o erro volta inteiro pelo backpropagation. Na Sigmoid, a derivada é no máximo 0,25, então o erro é dividido por pelo menos 4 a cada camada e chega fraco na primeira. No nosso caso, a ReLU venceu em todas as combinações, e a Sigmoid ficou em underfitting.
+
+% =====================================================================
+\section{Backpropagation e o código}
+
+\pergunta{O que é backpropagation e como ele funciona?}
+\resposta É o algoritmo que calcula a derivada do custo em relação a cada peso e bias, para o gradiente descendente saber como corrigi-los. Funciona em duas etapas:
+\begin{enumerate}[nosep]
+  \item \textbf{Forward:} a entrada passa pela rede ($z = aW + b$, $a = f(z)$) até a saída, e calcula-se o erro.
+  \item \textbf{Backward:} o erro da saída volta camada por camada, pelos mesmos pesos usados no forward, multiplicado pela derivada da ativação de cada neurônio (regra da cadeia). Com o erro de cada camada, calculam-se as derivadas dos pesos e do bias, e os pesos são atualizados.
+\end{enumerate}
+
+\pergunta{Explique este trecho do método \texttt{backward}.}
+\begin{lstlisting}[language=Python]
+delta = ativs[-1].copy()
+delta[np.arange(m), y] -= 1
+delta /= m
+\end{lstlisting}
+\resposta É o erro da camada de saída. \texttt{ativs[-1]} são as probabilidades da softmax ($\hat{y}$); subtrair 1 na posição da classe correta é fazer $\hat{y} - y$, com $y$ em one-hot. Essa é a derivada da entropia cruzada combinada com a softmax. A divisão por \texttt{m} faz a média no mini-batch.
+
+\pergunta{E estas duas linhas?}
+\begin{lstlisting}[language=Python]
+dW[i] = np.asarray(ativs[i].T @ delta) + 2 * self.l2 * self.W[i]
+db[i] = delta.sum(axis=0)
+\end{lstlisting}
+\resposta São as derivadas pedidas no enunciado. A derivada dos \textbf{pesos} é a ativação da camada anterior (transposta) vezes o erro da camada: $\partial C/\partial W = a^T\delta$. Com L2, soma-se $2\lambda W$, que é a derivada do termo $\lambda\sum W^2$. A derivada do \textbf{bias} é a soma dos erros, porque o bias entra somado em $z$ (derivada 1). O bias não é regularizado.
+
+\pergunta{E esta linha? Onde está a regra da cadeia?}
+\begin{lstlisting}[language=Python]
+delta = (delta @ self.W[i].T) * self.f_derivada(zs[i - 1])
+\end{lstlisting}
+\resposta É o erro voltando para a camada anterior. \texttt{delta @ W.T} distribui o erro de cada neurônio para os que estão ligados a ele, ponderado pelos pesos, como em $\delta_4 = w_{46}\,\delta$; se um neurônio recebe erro de vários, eles são somados. Depois multiplica-se pela derivada da ativação $f'(z)$. Essa multiplicação ``derivada de fora vezes derivada de dentro'' é a regra da cadeia.
+
+\pergunta{Na teoria a atualização é $w' = w + \eta\,\delta\,\frac{df(e)}{de}\,y$. Por que no código é \texttt{W -= lr * dW}?}
+\resposta É a mesma regra com o sinal do erro invertido. Na fórmula, o erro é (real $-$ predito); no código, $\delta = \hat{y} - y$ (predito $-$ real). Como o sinal é oposto, o passo vira subtração. Nos dois casos os pesos andam na direção que diminui o custo.
+
+\pergunta{Como vocês sabem que as derivadas estão corretas?}
+\resposta Pela conferência numérica (célula \texttt{conferir\_gradientes}). Para cada peso e cada bias de uma rede pequena, calculamos a derivada numérica $\frac{C(w+\epsilon) - C(w-\epsilon)}{2\epsilon}$ e comparamos com a do backpropagation. A maior diferença foi da ordem de $10^{-10}$, para ReLU e Sigmoid, com e sem L2.
+
+\pergunta{Por que no teste das derivadas o bias começa em 0,1 e os pesos em float64?}
+\resposta Com o bias em zero, alguns erros na derivada do bias poderiam passar despercebidos; com 0,1 o teste fica mais rigoroso. O float64 é para a derivada numérica ser precisa: com $\epsilon = 10^{-6}$, o float32 teria erro de arredondamento maior que a diferença que queremos medir.
+
+\pergunta{Por que usar mini-batch de 32 e embaralhar a cada época?}
+\resposta O mini-batch atualiza os pesos muitas vezes por época (500 vezes com 16 mil avaliações), o que é mais rápido que esperar a base toda, e o ruído de cada lote ajuda a sair de regiões ruins. Embaralhar a cada época evita que a rede veja sempre os mesmos lotes na mesma ordem.
+
+\pergunta{Por que a inicialização Glorot e não pesos zerados?}
+\resposta Com todos os pesos iguais (zero, por exemplo), todos os neurônios de uma camada calculam a mesma coisa e recebem o mesmo gradiente: a rede nunca diferencia os neurônios. A Glorot sorteia pesos pequenos, numa faixa que depende do número de entradas e saídas da camada, para o sinal não sumir nem explodir. Também é a padrão do Keras, o que deixa a comparação justa.
+
+\pergunta{Por que a softmax subtrai o máximo antes da exponencial?}
+\resposta Para evitar overflow: $e^{z}$ com $z$ grande estoura. Subtrair o mesmo valor de todas as entradas não muda o resultado da softmax, mas deixa os números pequenos.
+
+% =====================================================================
+\section{Problemas no treinamento (questão 5 da lista)}
+
+\pergunta{O que é desaparecimento ou explosão do gradiente? Apareceu no projeto?}
+\resposta No backpropagation, o erro é multiplicado pelos pesos e pelas derivadas a cada camada. Se esses fatores são pequenos, o gradiente \textbf{desaparece} e as primeiras camadas quase não aprendem; se são grandes, ele \textbf{explode} e os pesos dão saltos. No projeto, a \textbf{Sigmoid} mostrou o desaparecimento: com derivada de no máximo 0,25, a matriz $W^{(1)}$ mudou cerca de 10 por época nas 10 primeiras épocas, contra cerca de 150 na ReLU, e o custo ficou parado por 15 a 20 épocas. Soluções: usar ReLU, boa inicialização (Glorot ou He), normalização das camadas (batch normalization) e, contra explosão, limitar o tamanho do gradiente (gradient clipping) ou reduzir a taxa de aprendizado.
+
+\pergunta{E se faltarem dados de treino ou rotular for muito caro?}
+\resposta Aproveitar dados sem rótulo ou modelos já treinados: \textbf{transferência de aprendizado} (reutilizar camadas de uma rede treinada numa tarefa parecida), \textbf{pré-treino não supervisionado} e \textbf{embeddings pré-treinados}. O nosso Skip-gram é um exemplo: aprende o significado das palavras só com o texto, sem usar as notas. Também é possível aumentar os dados artificialmente (data augmentation).
+
+\pergunta{E se o treinamento for muito lento?}
+\resposta Boa inicialização, ReLU, normalização das camadas, otimizadores mais rápidos que o SGD puro (momentum, Adam) e taxa de aprendizado bem escolhida, além de hardware (GPU). No projeto, para a rede feita em NumPy rodar em minutos, usamos uma amostra de 20 mil avaliações e trabalhamos com a matriz esparsa do TF-IDF, que tem quase todos os valores zerados.
+
+\pergunta{Como lidar com o risco de overfitting quando há muitos parâmetros?}
+\resposta Regularização \textbf{L2} (testamos), \textbf{early stopping} (parar quando a validação para de melhorar), \textbf{dropout}, redes menores e mais dados. No projeto, a ReLU sem regularização teve overfitting maior nas redes maiores (distância entre treino e validação de 0,57 com (16, 8) e 1,29 com (128, 64)), e a menor rede foi a melhor. A validação atingiu o mínimo entre as épocas 5 e 13, então early stopping ajudaria.
+
+% =====================================================================
+\section{Validação cruzada e hiperparâmetros}
+
+\pergunta{Como funciona o 3-fold cross-validation que vocês usaram?}
+\resposta O conjunto de desenvolvimento (16 mil avaliações) é dividido em 3 partes com a mesma proporção de notas (\texttt{StratifiedKFold}). Cada configuração é treinada 3 vezes: em cada uma, treina com 2 partes e valida na terceira. O resultado é a média das 3 validações. Isso dá uma estimativa mais confiável do que uma única divisão treino/validação.
+
+\pergunta{Quais hiperparâmetros vocês variaram e quais ficaram fixos?}
+\resposta Variamos o que o enunciado pede: ativação (ReLU ou Sigmoid), regularização (sem ou L2 com $\lambda = 0{,}001$) e neurônios nas duas camadas ocultas ((16, 8), (64, 32) ou (128, 64)), num total de 12 configurações (grid search). Ficaram fixos a taxa de aprendizado (0,1), o mini-batch (32) e as épocas (30), para todas serem comparadas nas mesmas condições.
+
+\pergunta{Por que escolher a melhor configuração pelo F1 macro e não pela acurácia?}
+\resposta Porque a base é desbalanceada: 5 estrelas são 36,7\% da amostra. A Sigmoid com L2 teve acurácia de 0,367 prevendo sempre 5 estrelas, um modelo inútil. O F1 macro é a média do F1 de cada classe, dá o mesmo peso a todas as notas e cai para 0,107 nesse caso.
+
+\pergunta{Por que o teste fica separado e só é usado no final? O que é vazamento de dados?}
+\resposta Para estimar o desempenho em dados realmente novos. Se o teste fosse usado para escolher hiperparâmetros, o resultado ficaria otimista. Pelo mesmo motivo, removemos textos duplicados antes de dividir (o mesmo texto não pode estar no treino e no teste) e o TF-IDF aprende o vocabulário só no desenvolvimento.
+
+\pergunta{Por que usar uma amostra de 20 mil e não a base inteira?}
+\resposta A rede é feita em NumPy e o grid search treina 36 redes (12 configurações × 3 folds) por 30 épocas. Com a base inteira levaria horas. A amostra foi estratificada, então manteve a proporção de cada nota. A limitação é que, com mais dados, as redes maiores poderiam ter menos overfitting.
+
+\pergunta{Como escolheram a taxa de aprendizado 0,1 e o $\lambda = 0{,}001$?}
+\resposta Por testes rápidos antes do grid search. Com taxa 0,05, a Sigmoid não saía do lugar em 30 épocas; com 0,1, as duas ativações aprendem. O $\lambda = 0{,}001$ mostrou efeito visível da L2. Como foram testados poucos valores, um $\lambda$ menor (0,0001) provavelmente reduziria a variância sem aumentar tanto o viés.
+
+% =====================================================================
+\section{Curvas de aprendizado: viés e variância}
+
+\pergunta{Como vocês identificam overfitting e underfitting nas curvas?}
+\resposta Pela distância entre as curvas e pela altura delas.
+\begin{itemize}[nosep]
+  \item \textbf{Overfitting (alta variância):} o custo de treino continua caindo e o de validação sobe; as curvas se afastam. Foi o caso da ReLU sem regularização.
+  \item \textbf{Underfitting (alto viés):} as curvas ficam juntas, mas altas; o modelo não aprende nem o treino. Foi o caso da Sigmoid.
+  \item O ideal é custo baixo nas duas, com pouca distância.
+\end{itemize}
+
+\pergunta{Por que as curvas da ReLU têm picos e oscilam tanto?}
+\resposta Pela taxa de aprendizado alta (0,1) e pelo ruído do mini-batch: cada passo usa só 32 avaliações e às vezes passa do ponto. Quando treino e validação sobem juntos (como na época 23 da (64, 32)), é um passo ruim do gradiente, não overfitting. O overfitting é a tendência: treino caindo e validação subindo ao longo das épocas. A Sigmoid é lisa porque sua derivada pequena limita o tamanho dos passos.
+
+\pergunta{O custo de validação subiu muito, mas a acurácia mudou pouco. Como pode?}
+\resposta A entropia cruzada pune muito os erros cometidos com confiança. Quando a rede decora o treino, ela fica ``segura demais'': se dá 99\% para 5 estrelas e a nota era 4, o custo dessa avaliação é $-\log(0{,}01) \approx 4{,}6$. A rede não erra muito mais vezes, mas erra com mais convicção, e isso faz o custo subir.
+
+\pergunta{Por que a L2 piorou o resultado da ReLU?}
+\resposta A L2 cumpriu o papel de reduzir a variância (a distância entre treino e validação caiu para 0,19 a 0,29), mas com $\lambda = 0{,}001$ foi forte demais: segurou tanto os pesos que o custo de treino subiu para 1,0 a 1,4, ou seja, aumentou o viés. É a troca entre viés e variância: o ganho de variância não compensou o viés.
+
+\pergunta{Por que a Sigmoid com L2 prevê sempre 5 estrelas?}
+\resposta A L2 puxa os pesos para perto de zero, então $z \approx 0$ e todas as saídas da Sigmoid ficam em 0,5, iguais para qualquer avaliação. A rede não consegue diferenciar as entradas e aprende só o viés da saída, ou seja, a proporção das classes, prevendo a mais comum (5 estrelas). O custo fica parado em cerca de 1,47.
+
+% =====================================================================
+\section{Comparação com o Keras}
+
+\pergunta{Se os parâmetros são os mesmos, por que o Keras deu resultado diferente no teste?}
+\resposta Os pesos iniciais e a ordem dos mini-batches são sorteados de forma diferente em cada implementação, e com taxa 0,1 a ReLU oscila bastante entre épocas. O comportamento é o mesmo: o custo de treino termina praticamente igual (0,576 contra 0,560), e nas duas o custo no teste atinge o mínimo por volta da 5ª época e depois sobe. No Keras, a 30ª época caiu num ponto de mais overfitting, por isso a acurácia foi menor (0,498 contra 0,553).
+
+\pergunta{Quais parâmetros vocês igualaram entre as duas implementações?}
+\resposta Mesmas camadas e número de neurônios, mesma ativação, softmax na saída, entropia cruzada (\texttt{sparse\_categorical\_crossentropy}), SGD com a mesma taxa, mesmo mini-batch, mesmas épocas, mesma L2 (\texttt{kernel\_regularizer}, só nos pesos) e mesma inicialização Glorot uniforme com bias zero.
+
+\pergunta{Por que a implementação de vocês foi mais rápida que o Keras (4 s contra 44 s)?}
+\resposta A nossa trabalha direto com a matriz esparsa do TF-IDF, em que quase todos os valores são zero, então as multiplicações são baratas. No Keras convertemos para matriz densa (\texttt{toarray()}), com 3.000 colunas cheias de zeros, e ele também tem custo fixo de preparação.
+
+% =====================================================================
+\section{Mapa de calor e saturação}
+
+\pergunta{O que exatamente o mapa de calor mostra?}
+\resposta As duas matrizes de pesos das camadas ocultas: $W^{(1)}$ (entrada $\rightarrow$ oculta 1) e $W^{(2)}$ (oculta 1 $\rightarrow$ oculta 2). Ao fim de cada época calculamos $|W_{\text{época}} - W_{\text{época}-1}|$ e somamos ao longo das 30 épocas. Cada célula mostra o quanto aquele peso mudou no total; usamos a mesma escala de cor para ReLU e Sigmoid. Como $W^{(1)}$ tem 3.000 linhas, mostramos os 30 termos mais frequentes.
+
+\pergunta{Por que aparecem colunas escuras no mapa da ReLU?}
+\resposta São neurônios que quase nunca ativam ($z \le 0$ para quase todas as avaliações). Nessas situações a derivada da ReLU é zero, o erro não passa e os pesos que chegam neles não são atualizados. As linhas escuras de $W^{(2)}$ são os pesos que saem desses mesmos neurônios, porque a saída deles é quase sempre zero.
+
+\pergunta{Os neurônios da Sigmoid saturaram?}
+\resposta Não no sentido clássico. Saturar seria ter saídas perto de 0 ou de 1, onde a derivada é quase zero. Medimos e as saídas ficaram em torno de 0,5 (0\% e 0,2\% nos extremos), com derivada média de 0,248, quase o máximo de 0,25. A lentidão vem do próprio limite da derivada: mesmo no melhor caso, o erro é dividido por 4 a cada camada. Por isso a primeira camada quase não mudou nas primeiras épocas.
+
+\pergunta{A ReLU teve neurônios mortos?}
+\resposta Não. Cerca de 50\% das saídas são zero, mas todos os neurônios ativam para pelo menos uma avaliação do teste (0\% de neurônios mortos). Alguns, porém, ativam raramente e por isso quase não aprendem, como mostra o mapa de calor.
+
+% =====================================================================
+\section{Embedding Skip-gram (ponto extra)}
+
+\pergunta{Como vocês geraram o Skip-gram com a própria implementação?}
+\resposta Usamos a mesma classe \texttt{MLP}, retirando uma camada oculta, como indica a dica do enunciado: \texttt{MLP([V, 50, V], ativacao="linear")}. A entrada é a palavra central em one-hot ($V = 2.000$ palavras), a camada oculta de 50 neurônios sem ativação é o embedding, e a saída softmax prevê a palavra de contexto. Os pares (centro, contexto) vêm de uma janela de 2 palavras, cerca de 1 milhão de pares. Depois do treino, cada linha de $W^{(1)}$ é o vetor de uma palavra.
+
+\pergunta{Como sabem que o embedding aprendeu algo?}
+\resposta Pela similaridade do cosseno entre os vetores. As palavras mais próximas fazem sentido: ``ótimo'' $\rightarrow$ excelente, bom, maravilhoso; ``entrega'' $\rightarrow$ entregue, previsto, chegou; ``defeito'' $\rightarrow$ quebrado, quebrada, faltando.
+
+\pergunta{A acurácia melhorou com a nova representação? Por quê?}
+\resposta Não. Com TF-IDF concatenado ao Skip-gram, a acurácia caiu de 0,553 para 0,522 e o F1 macro de 0,479 para 0,461. Cada avaliação foi representada pela média dos vetores das suas palavras, e a média mistura tudo e perde termos decisivos, como o ``não'' em ``não recomendo''. Além disso, o embedding foi treinado com pouco dado (2 mil palavras e 5 épocas) e não acrescentou informação que o TF-IDF já não tivesse.
+
+\pergunta{Qual a diferença entre Skip-gram e CBOW?}
+\resposta O \textbf{Skip-gram} prevê as palavras de contexto a partir da palavra central; o \textbf{CBOW} faz o contrário, prevê a palavra central a partir das palavras de contexto. As duas são formas do word2vec.
+
+\pergunta{Por que no Skip-gram vocês usaram taxa 1,0 e mini-batch de 256?}
+\resposta São cerca de 1 milhão de pares e a saída tem 2.000 neurônios. Com mini-batch de 32 e taxa 0,1, o treino seria muito lento. Com lote maior, cada passo usa mais exemplos e o gradiente é mais estável, o que permite uma taxa maior. Esses valores valem só para o Skip-gram; o classificador manteve os parâmetros do grid search.
+
+% =====================================================================
+\section{Resultados gerais}
+
+\pergunta{Quais notas são mais difíceis de prever e por quê?}
+\resposta As do meio: 2 estrelas (F1 0,264) e 3 estrelas (0,318). As mais fáceis são os extremos, 1 estrela (0,755) e 5 estrelas (0,643). As notas do meio têm poucos exemplos e vocabulário misto. Os erros caem quase sempre em notas vizinhas: 2 estrelas vira 1 (121 casos) e 4 e 5 se confundem (447 e 379 casos).
+
+\pergunta{O que vocês fariam para melhorar o modelo?}
+\resposta Early stopping (a validação melhora até a época 5 a 13), taxa de aprendizado menor para a ReLU (menos oscilação), $\lambda$ menor na L2, usar mais dados da base e dar mais peso às classes pequenas no custo (como o \texttt{class\_weight} do Projeto 2).
+
+\end{document}
